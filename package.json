@@ -1,0 +1,30 @@
+{
+  "name": "codeceptjs-sbus",
+  "version": "0.0.1",
+  "description": "CodeceptJS helper for sbus-node",
+  "dependencies": {
+    "@kronoslive/codeceptjs-utils": "^0.0.1",
+    "cuid": "^2.1.1",
+    "requireg": "^0.1.8",
+    "sbus-node": "0.0.2"
+  },
+  "devDependencies": {
+    "eslint": "^4.19.1",
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-plugin-import": "^2.12.0"
+  },
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:APshenkin/codeceptjs-sbus.git"
+  },
+  "keywords": [
+    "RabbitMQ",
+    "sbus"
+  ],
+  "author": "Andrey Pshenkin <andrey.pshenkin@gmail.com>",
+  "license": "MIT"
+}
