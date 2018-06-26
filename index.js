@@ -59,9 +59,6 @@ class Rabbit extends Helper {
           }
         `);
     }
-
-    this.transport = new RabbitMqTransport(this.options);
-    this.sbus = new Sbus(this.transport);
   }
 
   // eslint-disable-next-line consistent-return
@@ -87,12 +84,14 @@ class Rabbit extends Helper {
         value: cropLongData(msg),
       });
     };
-
-
     utils = this.helpers.Utils;
-    if (this.transport.isRunning) {
+
+    if (this.transport && this.transport.isRunning) {
       return true;
     }
+
+    this.transport = new RabbitMqTransport(this.options);
+    this.sbus = new Sbus(this.transport);
 
     // Устанавливаем коннект к Rabbit
     return this.transport._connect();
