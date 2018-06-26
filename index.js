@@ -231,6 +231,7 @@ class Rabbit extends Helper {
   }
 
   _after() {
+    this.receivedMessages = {};
     return this.transport.closeSubscribedChannels();
   }
 }
