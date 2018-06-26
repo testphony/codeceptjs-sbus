@@ -59,6 +59,9 @@ class Rabbit extends Helper {
           }
         `);
     }
+
+    this.transport = new RabbitMqTransport(this.options);
+    this.sbus = new Sbus(this.transport);
   }
 
   // eslint-disable-next-line consistent-return
@@ -84,9 +87,6 @@ class Rabbit extends Helper {
         value: cropLongData(msg),
       });
     };
-
-    this.transport = new RabbitMqTransport(this.options);
-    this.sbus = new Sbus(this.transport);
 
 
     utils = this.helpers.Utils;
