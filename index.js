@@ -217,6 +217,10 @@ class Rabbit extends Helper {
       return true;
     }
 
+    if (!this.transport) {
+      return true;
+    }
+
     if (!this.transport.isRunning) {
       return true;
     }

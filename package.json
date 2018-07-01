@@ -1,6 +1,6 @@
 {
   "name": "codeceptjs-sbus",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "CodeceptJS helper for sbus-node",
   "dependencies": {
     "@kronoslive/codeceptjs-utils": "^0.0.1",
