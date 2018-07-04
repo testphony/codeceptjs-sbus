@@ -124,6 +124,10 @@ class Rabbit extends Helper {
   subscribeToRabbitQueue(routingKey, callback = (() => ({})), options = { logging: true }) {
     this.receivedMessages[routingKey] = this.receivedMessages[routingKey] || [];
 
+    const ctx = {
+      exchange: options.exchange,
+    };
+
     const storingCallback = (msg, ctx) => {
       if (options.logging) {
         mochawesome.addMochawesomeContext({
@@ -139,7 +143,7 @@ class Rabbit extends Helper {
 
       return callback(msg, ctx);
     };
-    return this.sbus.on(routingKey, storingCallback);
+    return this.sbus.on(routingKey, storingCallback, ctx);
   }
 
   waitRabbitRequestUntil(routingKey, command, predicate) {
