@@ -121,6 +121,18 @@ class Rabbit extends Helper {
     return this.sbus.command(routingKey, data, ctx);
   }
 
+  sendRabbitEvent(routingKey, data, ctx = {}) {
+    mochawesome.addMochawesomeContext({
+      title: 'Send Rabbit event',
+      value: {
+        routingKey,
+        body: data,
+      },
+    });
+
+    return this.sbus.event(routingKey, data, ctx);
+  }
+
   subscribeToRabbitQueue(routingKey, callback = (() => ({})), options = { logging: true }) {
     this.receivedMessages[routingKey] = this.receivedMessages[routingKey] || [];
 
