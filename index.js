@@ -31,6 +31,10 @@ class Rabbit extends Helper {
       exchange: 'common',
       port: '5672',
       autoinit: false,
+      logger: {
+        info: () => {},
+        error: () => {},
+      },
       channelClosingCallback: err => recorder.throw(err),
       channelReplyErrorCallback: err => recorder.catch(() => {
         throw err;
