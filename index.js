@@ -82,12 +82,6 @@ class Rabbit extends Helper {
 
     mochawesome = mochawesomeHelper || this.helpers.Mochawesome;
 
-    this.options.log = (msg) => {
-      mochawesome.addMochawesomeContext({
-        title: 'Get Rabbit response',
-        value: cropLongData(msg),
-      });
-    };
     utils = this.helpers.Utils;
 
     if (this.transport && this.transport.isRunning) {
@@ -110,7 +104,14 @@ class Rabbit extends Helper {
       },
     });
 
-    return this.sbus.request(routingKey, data, ctx);
+    return this.sbus.request(routingKey, data, ctx).then(res => {
+      mochawesome.addMochawesomeContext({
+        title: 'Get Rabbit response',
+        value: cropLongData(res),
+      });
+
+      return res
+    });
   }
 
   sendRabbitCommand(routingKey, data, ctx = {}) {
@@ -122,7 +123,14 @@ class Rabbit extends Helper {
       },
     });
 
-    return this.sbus.command(routingKey, data, ctx);
+    return this.sbus.command(routingKey, data, ctx).then(res => {
+      mochawesome.addMochawesomeContext({
+        title: 'Get Rabbit response',
+        value: cropLongData(res),
+      });
+
+      return res
+    });
   }
 
   sendRabbitEvent(routingKey, data, ctx = {}) {
@@ -134,7 +142,14 @@ class Rabbit extends Helper {
       },
     });
 
-    return this.sbus.event(routingKey, data, ctx);
+    return this.sbus.event(routingKey, data, ctx).then(res => {
+      mochawesome.addMochawesomeContext({
+        title: 'Get Rabbit response',
+        value: cropLongData(res),
+      });
+
+      return res
+    });
   }
 
   subscribeToRabbitQueue(routingKey, callback = (() => ({})), options = { logging: true }) {
