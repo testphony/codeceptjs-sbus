@@ -1,12 +1,12 @@
 {
   "name": "codeceptjs-sbus",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "CodeceptJS helper for sbus-node",
   "dependencies": {
     "@kronoslive/codeceptjs-utils": "^0.0.2",
     "cuid": "^2.1.1",
     "requireg": "^0.1.8",
-    "sbus-node": "^0.1.14"
+    "sbus-node": "^0.1.15"
   },
   "devDependencies": {
     "eslint": "^5.16.0",
