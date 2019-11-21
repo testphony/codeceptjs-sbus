@@ -1,17 +1,17 @@
 {
   "name": "codeceptjs-sbus",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "CodeceptJS helper for sbus-node",
   "dependencies": {
     "@kronoslive/codeceptjs-utils": "^0.0.2",
     "cuid": "^2.1.1",
     "requireg": "^0.1.8",
-    "sbus-node": "^0.1.15"
+    "sbus-node": "^0.1.16"
   },
   "devDependencies": {
-    "eslint": "^5.16.0",
-    "eslint-config-airbnb-base": "^13.1.0",
-    "eslint-plugin-import": "^2.17.3"
+    "eslint": "^6.6.0",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-plugin-import": "^2.18.2"
   },
   "main": "index.js",
   "scripts": {

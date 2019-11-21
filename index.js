@@ -35,8 +35,8 @@ class Rabbit extends Helper {
         info: () => {},
         error: () => {},
       },
-      channelClosingCallback: err => recorder.throw(err),
-      channelReplyErrorCallback: err => recorder.catch(() => {
+      channelClosingCallback: (err) => recorder.throw(err),
+      channelReplyErrorCallback: (err) => recorder.catch(() => {
         throw err;
       }),
     };
@@ -104,13 +104,13 @@ class Rabbit extends Helper {
       },
     });
 
-    return this.sbus.request(routingKey, data, ctx).then(res => {
+    return this.sbus.request(routingKey, data, ctx).then((res) => {
       mochawesome.addMochawesomeContext({
         title: 'Get Rabbit response',
         value: cropLongData(res),
       });
 
-      return res
+      return res;
     });
   }
 
@@ -123,13 +123,13 @@ class Rabbit extends Helper {
       },
     });
 
-    return this.sbus.command(routingKey, data, ctx).then(res => {
+    return this.sbus.command(routingKey, data, ctx).then((res) => {
       mochawesome.addMochawesomeContext({
         title: 'Get Rabbit response',
         value: cropLongData(res),
       });
 
-      return res
+      return res;
     });
   }
 
@@ -142,13 +142,13 @@ class Rabbit extends Helper {
       },
     });
 
-    return this.sbus.event(routingKey, data, ctx).then(res => {
+    return this.sbus.event(routingKey, data, ctx).then((res) => {
       mochawesome.addMochawesomeContext({
         title: 'Get Rabbit response',
         value: cropLongData(res),
       });
 
-      return res
+      return res;
     });
   }
 
