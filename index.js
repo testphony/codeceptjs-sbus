@@ -2,7 +2,10 @@
 const requireg = require('requireg');
 const Helper = require('@codeceptjs/helper');
 
-const { errorFromCode } = require('@copper/model');
+const {
+  errorFromCode,
+  GeneralError,
+} = require('@copper/model');
 const Unit = require('@copper/sbus/dist/lib/utils/unit').default;
 
 // eslint-disable-next-line import/no-dynamic-require
@@ -193,10 +196,22 @@ class Rabbit extends Helper {
         status: 200,
         body: res,
       }))
-      .catch((res) => ({
-        body: res,
-        status: res.code ? parseInt(res.code, 10) : 500,
-      }));
+      .catch((e) => {
+        const errMsg = e.message ? e.message : e.toString();
+        if (e instanceof GeneralError) {
+          return {
+            status: e.code.toString(),
+            body: {
+              message: errMsg,
+              error: e.error,
+            },
+          };
+        }
+        return {
+          status: '500',
+          body: { message: errMsg },
+        };
+      });
   }
 
   async sendRabbitCommand(routingKey, data, ctx = {}) {
@@ -209,10 +224,22 @@ class Rabbit extends Helper {
         status: 200,
         body: res,
       }))
-      .catch((res) => ({
-        body: res,
-        status: res.code ? parseInt(res.code, 10) : 500,
-      }));
+      .catch((e) => {
+        const errMsg = e.message ? e.message : e.toString();
+        if (e instanceof GeneralError) {
+          return {
+            status: e.code.toString(),
+            body: {
+              message: errMsg,
+              error: e.error,
+            },
+          };
+        }
+        return {
+          status: '500',
+          body: { message: errMsg },
+        };
+      });
   }
 
   async sendRabbitEvent(routingKey, data, ctx = {}) {
@@ -225,10 +252,22 @@ class Rabbit extends Helper {
         status: 200,
         body: res,
       }))
-      .catch((res) => ({
-        body: res,
-        status: res.code ? parseInt(res.code, 10) : 500,
-      }));
+      .catch((e) => {
+        const errMsg = e.message ? e.message : e.toString();
+        if (e instanceof GeneralError) {
+          return {
+            status: e.code.toString(),
+            body: {
+              message: errMsg,
+              error: e.error,
+            },
+          };
+        }
+        return {
+          status: '500',
+          body: { message: errMsg },
+        };
+      });
   }
 
   async subscribeToRabbitQueue(routingKey, callback = (() => ({}))) {
