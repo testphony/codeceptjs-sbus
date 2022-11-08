@@ -1,56 +1,96 @@
-
+// eslint-disable-next-line max-classes-per-file
 const requireg = require('requireg');
-const { cropLongData } = require('@kronoslive/codeceptjs-utils');
-const path = require('path');
+const Helper = require('@codeceptjs/helper');
 
-const codeceptjsPath = path.resolve(global.codecept_dir, './node_modules/codeceptjs');
+const { errorFromCode } = require('@copper/model');
+
 // eslint-disable-next-line import/no-dynamic-require
-const { recorder } = require(codeceptjsPath);
 
-let Sbus;
-let RabbitMqTransport;
+// eslint-disable-next-line no-unused-vars
+class NoOpLogger {
+  error() {
+  }
 
-let mochawesome;
-let utils;
+  debug() {
+  }
+
+  info() {
+  }
+
+  trace() {
+  }
+}
 
 class Rabbit extends Helper {
   constructor(config) {
-    super(config);
-    // eslint-disable-next-line prefer-destructuring
-    Sbus = requireg('sbus-node').Sbus;
-    // eslint-disable-next-line prefer-destructuring
-    RabbitMqTransport = requireg('sbus-node').RabbitMqTransport;
-    this._validateConfig(config);
+    const defaults = {
+      auth: {
+        enabled: false,
+        required: false,
+        publicKeys: {},
+        consul: {
+          enabled: false,
+        },
+        rbac: {
+          identities: {},
+          actions: { '*': { permissions: ['*'] } },
+        },
+      },
+      host: 'localhost',
+      username: 'guest',
+      password: 'guest',
+      port: 5672,
+      prefetchCount: 64,
+      defaultCommandRetries: 15,
+      defaultTimeout: 12000,
+      shutdownTimeout: 3000,
+      logTrimLength: 2048,
+      unloggedRequests: [],
+      useSingletonSubscribe: false,
+      autoinit: false,
+      logger: new NoOpLogger(),
+      channels: {
+        default: {
+          exchange: 'sbus.common',
+          exchangeType: 'direct',
+
+          queueName: '%s',
+          durable: false,
+          exclusive: false,
+          autoDelete: false,
+          mandatory: true,
+          heartbeat: false,
+          routingKeys: [], // optional, by default get from subscriptionName
+        },
+        events: {
+          exchange: 'sbus.events',
+          exchangeType: 'topic',
+
+          mandatory: false,
+          heartbeat: true,
+        },
+        broadcast: {
+          exchange: 'sbus.events',
+          exchangeType: 'topic',
+
+          queueName: '',
+          exclusive: true,
+          autoDelete: true,
+          mandatory: false,
+          heartbeat: true,
+        },
+      },
+    };
+
+    super({ ...defaults, ...config });
   }
 
   _validateConfig(config) {
-    this.options = {
-      defaultTimeout: 5000,
-      defaultCommandRetries: 0,
-      prefetchCount: 100,
-      exchange: 'common',
-      port: '5672',
-      autoinit: false,
-      logger: {
-        info: () => {},
-        error: () => {},
-      },
-      channelClosingCallback: (err) => recorder.throw(err),
-      channelReplyErrorCallback: (err) => recorder.catch(() => {
-        throw err;
-      }),
-    };
-
-    this.receivedMessages = {};
-
-    // override defaults with config
-    Object.assign(this.options, config);
-
-    if (!this.options.enabled) {
+    if (!config.enabled) {
       return;
     }
 
-    if (!this.options.host) {
+    if (!config.host) {
       throw new Error(`
         Rabbit requires at hostname to be set.
         Check your codeceptjs config file to ensure this is set properly
@@ -63,93 +103,119 @@ class Rabbit extends Helper {
           }
         `);
     }
+
+    // eslint-disable-next-line consistent-return
+    return super._validateConfig(config);
   }
 
   // eslint-disable-next-line consistent-return
   static _checkRequirements() {
     try {
-      requireg('sbus-node');
+      requireg('@copper/sbus');
     } catch (e) {
-      return ['sbus-node'];
+      return ['@copper/sbus'];
     }
-    // eslint-disable-next-line consistent-return
   }
 
-  _beforeSuite(test, mochawesomeHelper) {
-    if (!this.options.enabled) {
+  // eslint-disable-next-line consistent-return,no-unused-vars
+  async _init() {
+    if (!this.config.enabled) {
       return true;
     }
 
-    mochawesome = mochawesomeHelper || this.helpers.Mochawesome;
-
-    utils = this.helpers.Utils;
-
-    if (this.transport && this.transport.isRunning) {
+    if (this.transport) {
       return true;
     }
 
-    this.transport = new RabbitMqTransport(this.options);
-    this.sbus = new Sbus(this.transport);
+    const {
+      Sbus,
+      RabbitMqTransport,
+      ConsulAuthConfigProvider,
+      AuthProviderImpl,
+      NoopDynamicAuthConfigProvider,
+      NoopAuthProvider,
+    } = requireg('@copper/sbus');
 
-    // Устанавливаем коннект к Rabbit
-    return this.transport._connect();
+    const dynamicAuthConfigProvider = this.config.auth.consul.enabled || false
+      ? new ConsulAuthConfigProvider(this.config.auth.consul)
+      : new NoopDynamicAuthConfigProvider();
+
+    const authProvider = this.config.auth.enabled && this.config.auth.name && this.config.auth.privateKey
+      ? new AuthProviderImpl(this.config.auth, this.config.logger, dynamicAuthConfigProvider)
+      : new NoopAuthProvider();
+
+    this.transport = new RabbitMqTransport();
+    await this.transport.init(this.config, authProvider);
+
+    this.sbus = new Sbus(this.transport, authProvider);
+
+    await this.transport.connect();
+
+    return true;
   }
 
-  sendRabbitRequest(routingKey, data, ctx) {
-    mochawesome.addMochawesomeContext({
-      title: 'Send Rabbit request',
-      value: {
-        routingKey,
-        body: data,
-      },
-    });
+  // eslint-disable-next-line consistent-return,no-unused-vars
+  async _finishTest(suite) {
+    if (!this.config.enabled) {
+      return true;
+    }
 
-    return this.sbus.request(routingKey, data, ctx).then((res) => {
-      mochawesome.addMochawesomeContext({
-        title: 'Get Rabbit response',
-        value: cropLongData(res),
-      });
+    if (!this.transport) {
+      return true;
+    }
 
-      return res;
-    });
+    await this.transport.close();
+
+    this.transport = null;
+    this.sbus = null;
+
+    return true;
+  }
+
+  // eslint-disable-next-line no-unused-vars
+  _before(test) {
+    this.receivedMessages = {};
+  }
+
+  // eslint-disable-next-line no-unused-vars
+  _after(test) {
+    this.receivedMessages = {};
+  }
+
+  sendRabbitRequest(routingKey, data, ctx = {}, cls = Object) {
+    return this.sbus.request(routingKey, data, cls, ctx)
+      .then((res) => ({
+        status: 200,
+        body: res,
+      }))
+      .catch((res) => ({
+        ...res,
+        status: res.code ? parseInt(res.code, 10) : 500,
+      }));
   }
 
   sendRabbitCommand(routingKey, data, ctx = {}) {
-    mochawesome.addMochawesomeContext({
-      title: 'Send Rabbit command',
-      value: {
-        routingKey,
-        body: data,
-      },
-    });
-
-    return this.sbus.command(routingKey, data, ctx).then((res) => {
-      mochawesome.addMochawesomeContext({
-        title: 'Get Rabbit response',
-        value: cropLongData(res),
-      });
-
-      return res;
-    });
+    return this.sbus.command(routingKey, data, ctx)
+      .then((res) => ({
+        status: 200,
+        body: res,
+      }))
+      .catch((res) => ({
+        ...res,
+        status: res.code ? parseInt(res.code, 10) : 500,
+      }));
   }
 
   sendRabbitEvent(routingKey, data, ctx = {}) {
-    mochawesome.addMochawesomeContext({
-      title: 'Send Rabbit event',
-      value: {
-        routingKey,
-        body: data,
-      },
-    });
-
-    return this.sbus.event(routingKey, data, ctx).then((res) => {
-      mochawesome.addMochawesomeContext({
-        title: 'Get Rabbit response',
-        value: cropLongData(res),
-      });
-
-      return res;
-    });
+    return this.sbus.event(routingKey, data, ctx)
+      .then((res) => ({
+        status: 200,
+        body: res,
+      }))
+      .catch((res) => ({
+        ...res,
+        status: res.code ? parseInt(res.code, 10) : 500,
+      }));
   }
 
   subscribeToRabbitQueue(routingKey, callback = (() => ({})), options = { logging: true }) {
@@ -160,25 +226,26 @@ class Rabbit extends Helper {
     };
 
     const storingCallback = (msg, ctx) => {
-      if (options.logging) {
-        mochawesome.addMochawesomeContext({
-          title: 'Received Rabbit command',
-          value: {
-            routingKey,
-            body: msg,
-          },
-        });
+      const payload = {
+        routingKey,
+        body: msg,
+      };
+
+      this.receivedMessages[routingKey].push(payload);
+
+      const resp = callback(payload, ctx);
+
+      if (resp.status < 400) {
+        return resp.body;
       }
-
-      this.receivedMessages[routingKey].push(msg);
-
-      return callback(msg, ctx);
+      throw errorFromCode(resp.status, resp.body);
     };
     return this.sbus.on(routingKey, storingCallback, ctx);
   }
 
-  waitRabbitRequestUntil(routingKey, command, predicate) {
-    return utils.waitUntil(() => this.sendRabbitRequest(routingKey, command).then(predicate), 2000, `sbus timeout wait ${routingKey} with ${predicate}`, 250);
+  waitRabbitRequestUntil(routingKey, command, predicate, ctx = {}, cls = Object) {
+    return this.helpers.Utils.waitUntil(() => this.sendRabbitRequest(routingKey, command, ctx, cls)
+      .then(predicate), 2000, `sbus timeout wait ${routingKey} with ${predicate}`, 250);
   }
 
   expectRabbitMessageUntil(routingKey, predicate, timeout) {
@@ -189,7 +256,7 @@ class Rabbit extends Helper {
     const seen = {};
     let predicateErr;
 
-    return utils.waitUntil(() => Promise.resolve((this.receivedMessages[routingKey] || [])
+    return this.helpers.Utils.waitUntil(() => Promise.resolve((this.receivedMessages[routingKey] || [])
       .find((msg, i) => {
         try {
           if (!seen[i]) {
@@ -206,26 +273,13 @@ class Rabbit extends Helper {
         if (predicateErr) {
           throw new Error(`predicate return err (${predicateErr.code}), but it should return boolean value`);
         }
-        mochawesome.addMochawesomeContext({
-          title: `Wait message with predicate for routing key  ${routingKey}`,
-          value: predicate.toString(),
-        });
-        mochawesome.addMochawesomeContext({
-          title: 'Latest message',
-          value: cropLongData(this.receivedMessages[routingKey][this.receivedMessages[routingKey].length - 1]),
-        });
-      }).catch((err) => {
-        mochawesome.addMochawesomeContext({
-          title: `Wait message with predicate for routing key ${routingKey}`,
-          value: predicate.toString(),
-        });
-        mochawesome.addMochawesomeContext({
-          title: 'Latest message',
-          value: cropLongData(this.receivedMessages[routingKey][this.receivedMessages[routingKey].length - 1]),
-        });
+      })
+      .catch((err) => {
         if (err.message === 'timeout') {
           throw new Error(`sbus timeout while expecting ${routingKey} with ${predicate}`);
-        } else throw err;
+        } else {
+          throw err;
+        }
       });
   }
 
@@ -245,33 +299,6 @@ class Rabbit extends Helper {
         }
       }, timeout);
     });
-  }
-
-  _finishTest() {
-    if (!this.options.enabled) {
-      return true;
-    }
-
-    if (!this.transport) {
-      return true;
-    }
-
-    if (!this.transport.isRunning) {
-      return true;
-    }
-
-    this.transport.isRunning = false;
-
-    return this.transport.closeConnection();
-  }
-
-  _failed() {
-
-  }
-
-  _after() {
-    this.receivedMessages = {};
-    return this.transport.closeSubscribedChannels();
   }
 }
 
