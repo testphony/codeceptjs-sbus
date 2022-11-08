@@ -1,6 +1,6 @@
 {
   "name": "codeceptjs-sbus",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "CodeceptJS helper for sbus-node",
   "dependencies": {
     "@codeceptjs/helper": "^2.0.1",

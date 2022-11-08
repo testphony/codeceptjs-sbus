@@ -3,6 +3,7 @@ const requireg = require('requireg');
 const Helper = require('@codeceptjs/helper');
 
 const { errorFromCode } = require('@copper/model');
+const Unit = require('@copper/sbus/dist/lib/utils/unit').default;
 
 // eslint-disable-next-line import/no-dynamic-require
 
@@ -182,18 +183,18 @@ class Rabbit extends Helper {
     this.receivedMessages = {};
   }
 
-  async sendRabbitRequest(routingKey, data, ctx = {}, cls = Object) {
+  async sendRabbitRequest(routingKey, data, cls, ctx = {}) {
     if (!this.sbus) {
       return Promise.resolve();
     }
 
-    return this.sbus.request(routingKey, data, cls, ctx)
+    return this.sbus.request(routingKey, data, Unit, ctx)
       .then((res) => ({
         status: 200,
         body: res,
       }))
       .catch((res) => ({
-        ...res,
+        body: res,
         status: res.code ? parseInt(res.code, 10) : 500,
       }));
   }
@@ -209,7 +210,7 @@ class Rabbit extends Helper {
         body: res,
       }))
       .catch((res) => ({
-        ...res,
+        body: res,
         status: res.code ? parseInt(res.code, 10) : 500,
       }));
   }
@@ -225,21 +226,17 @@ class Rabbit extends Helper {
         body: res,
       }))
       .catch((res) => ({
-        ...res,
+        body: res,
         status: res.code ? parseInt(res.code, 10) : 500,
       }));
   }
 
-  async subscribeToRabbitQueue(routingKey, callback = (() => ({})), options = { }) {
+  async subscribeToRabbitQueue(routingKey, callback = (() => ({}))) {
     if (!this.sbus) {
       return Promise.resolve();
     }
 
     this.receivedMessages[routingKey] = this.receivedMessages[routingKey] || [];
-
-    const ctx = {
-      exchange: options.exchange,
-    };
 
     const storingCallback = async (msg, ctx) => {
       const payload = {
@@ -260,11 +257,11 @@ class Rabbit extends Helper {
       }
       throw errorFromCode(resp.status || 500, resp.body || {});
     };
-    return this.sbus.on(routingKey, storingCallback, ctx);
+    return this.sbus.on(routingKey, storingCallback);
   }
 
-  async waitRabbitRequestUntil(routingKey, command, predicate, ctx = {}, cls = Object) {
-    return this.helpers.Utils.waitUntil(() => this.sendRabbitRequest(routingKey, command, ctx, cls)
+  async waitRabbitRequestUntil(routingKey, command, predicate, cls, ctx = {}) {
+    return this.helpers.Utils.waitUntil(() => this.sendRabbitRequest(routingKey, command, cls, ctx)
       .then(predicate), 2000, `sbus timeout wait ${routingKey} with ${predicate}`, 250);
   }
 
@@ -347,6 +344,10 @@ class Rabbit extends Helper {
         }
       }, timeout);
     });
+  }
+
+  getSbus() {
+    return this.sbus;
   }
 }
 
