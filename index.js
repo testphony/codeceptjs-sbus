@@ -6,7 +6,6 @@ const {
   errorFromCode,
   GeneralError,
 } = require('@copper/model');
-const Unit = require('@copper/sbus/dist/lib/utils/unit').default;
 
 // eslint-disable-next-line import/no-dynamic-require
 
@@ -22,6 +21,9 @@ class NoOpLogger {
   }
 
   trace() {
+  }
+
+  warn() {
   }
 }
 
@@ -191,7 +193,7 @@ class Rabbit extends Helper {
       return Promise.resolve();
     }
 
-    return this.sbus.request(routingKey, data, Unit, ctx)
+    return this.sbus.request(routingKey, data, cls, ctx)
       .then((res) => ({
         status: 200,
         body: res,
