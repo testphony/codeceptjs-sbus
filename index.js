@@ -182,7 +182,7 @@ class Rabbit extends Helper {
     this.receivedMessages = {};
   }
 
-  sendRabbitRequest(routingKey, data, ctx = {}, cls = Object) {
+  async sendRabbitRequest(routingKey, data, ctx = {}, cls = Object) {
     if (!this.sbus) {
       return Promise.resolve();
     }
@@ -198,7 +198,7 @@ class Rabbit extends Helper {
       }));
   }
 
-  sendRabbitCommand(routingKey, data, ctx = {}) {
+  async sendRabbitCommand(routingKey, data, ctx = {}) {
     if (!this.sbus) {
       return Promise.resolve();
     }
@@ -214,7 +214,7 @@ class Rabbit extends Helper {
       }));
   }
 
-  sendRabbitEvent(routingKey, data, ctx = {}) {
+  async sendRabbitEvent(routingKey, data, ctx = {}) {
     if (!this.sbus) {
       return Promise.resolve();
     }
@@ -230,7 +230,7 @@ class Rabbit extends Helper {
       }));
   }
 
-  subscribeToRabbitQueue(routingKey, callback = (() => ({})), options = { logging: true }) {
+  async subscribeToRabbitQueue(routingKey, callback = (() => ({})), options = { }) {
     if (!this.sbus) {
       return Promise.resolve();
     }
@@ -241,7 +241,7 @@ class Rabbit extends Helper {
       exchange: options.exchange,
     };
 
-    const storingCallback = (msg, ctx) => {
+    const storingCallback = async (msg, ctx) => {
       const payload = {
         routingKey,
         body: msg,
@@ -249,22 +249,54 @@ class Rabbit extends Helper {
 
       this.receivedMessages[routingKey].push(payload);
 
-      const resp = callback(payload, ctx);
+      const resp = await callback(payload, ctx);
+
+      if (!resp) {
+        return null;
+      }
 
       if (resp.status < 400) {
         return resp.body;
       }
-      throw errorFromCode(resp.status, resp.body);
+      throw errorFromCode(resp.status || 500, resp.body || {});
     };
     return this.sbus.on(routingKey, storingCallback, ctx);
   }
 
-  waitRabbitRequestUntil(routingKey, command, predicate, ctx = {}, cls = Object) {
+  async waitRabbitRequestUntil(routingKey, command, predicate, ctx = {}, cls = Object) {
     return this.helpers.Utils.waitUntil(() => this.sendRabbitRequest(routingKey, command, ctx, cls)
       .then(predicate), 2000, `sbus timeout wait ${routingKey} with ${predicate}`, 250);
   }
 
-  expectRabbitMessageUntil(routingKey, predicate, timeout) {
+  async expectRabbitMessage(routingKey, predicate) {
+    if (this.receivedMessages[routingKey] === undefined) {
+      throw new Error(`We should subscribe to ${routingKey} before expecting something!`);
+    }
+
+    const seen = {};
+    let predicateErr;
+
+    return Promise.resolve((this.receivedMessages[routingKey] || [])
+      .find((msg, i) => {
+        try {
+          if (!seen[i]) {
+            seen[i] = true;
+            return predicate(msg);
+          }
+          return false;
+        } catch (err) {
+          predicateErr = err;
+          return true;
+        }
+      }))
+      .then(() => {
+        if (predicateErr) {
+          throw new Error(`predicate return err (${predicateErr.code}), but it should return boolean value`);
+        }
+      });
+  }
+
+  async expectRabbitMessageUntil(routingKey, predicate, timeout) {
     if (this.receivedMessages[routingKey] === undefined) {
       throw new Error(`We should subscribe to ${routingKey} before expecting something!`);
     }
@@ -299,7 +331,7 @@ class Rabbit extends Helper {
       });
   }
 
-  dontExpectRabbitMessageUntil(routingKey, predicate, timeout) {
+  async dontExpectRabbitMessageUntil(routingKey, predicate, timeout) {
     if (this.receivedMessages[routingKey] === undefined) {
       throw new Error(`We should subscribe to ${routingKey} before expecting something!`);
     }
