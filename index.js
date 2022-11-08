@@ -183,6 +183,10 @@ class Rabbit extends Helper {
   }
 
   sendRabbitRequest(routingKey, data, ctx = {}, cls = Object) {
+    if (!this.sbus) {
+      return Promise.resolve();
+    }
+
     return this.sbus.request(routingKey, data, cls, ctx)
       .then((res) => ({
         status: 200,
@@ -195,6 +199,10 @@ class Rabbit extends Helper {
   }
 
   sendRabbitCommand(routingKey, data, ctx = {}) {
+    if (!this.sbus) {
+      return Promise.resolve();
+    }
+
     return this.sbus.command(routingKey, data, ctx)
       .then((res) => ({
         status: 200,
@@ -207,6 +215,10 @@ class Rabbit extends Helper {
   }
 
   sendRabbitEvent(routingKey, data, ctx = {}) {
+    if (!this.sbus) {
+      return Promise.resolve();
+    }
+
     return this.sbus.event(routingKey, data, ctx)
       .then((res) => ({
         status: 200,
@@ -219,6 +231,10 @@ class Rabbit extends Helper {
   }
 
   subscribeToRabbitQueue(routingKey, callback = (() => ({})), options = { logging: true }) {
+    if (!this.sbus) {
+      return Promise.resolve();
+    }
+
     this.receivedMessages[routingKey] = this.receivedMessages[routingKey] || [];
 
     const ctx = {
