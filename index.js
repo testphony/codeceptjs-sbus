@@ -277,25 +277,28 @@ class Rabbit extends Helper {
       return Promise.resolve();
     }
 
-    this.receivedMessages[routingKey] = this.receivedMessages[routingKey] || [];
+    const realRoutingKey = routingKey.split(':').pop();
+
+    this.receivedMessages[realRoutingKey] = this.receivedMessages[realRoutingKey] || [];
 
     const storingCallback = async (msg, ctx) => {
       const payload = {
-        routingKey,
+        realRoutingKey,
         body: msg,
       };
 
-      this.receivedMessages[routingKey].push(payload);
+      this.receivedMessages[realRoutingKey].push(payload);
 
       const resp = await callback(payload, ctx);
 
-      if (!resp) {
-        return null;
+      if (!resp || typeof resp === 'string' || (!resp.status && !resp.body)) {
+        return resp;
       }
 
       if (resp.status < 400) {
         return resp.body;
       }
+
       throw errorFromCode(resp.status || 500, resp.body || {});
     };
     return this.sbus.on(routingKey, storingCallback);
