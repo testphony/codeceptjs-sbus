@@ -5,7 +5,7 @@
   "dependencies": {
     "@codeceptjs/helper": "^2.0.1",
     "@copper/model": "^1.0.5",
-    "@copper/sbus": "^1.1.30",
+    "@copper/sbus": "^1.1.32",
     "cuid": "^2.1.1",
     "requireg": "^0.1.8"
   },
